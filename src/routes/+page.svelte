@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import { Radio, Play, Pause, Volume2, VolumeX, Disc3 } from '@lucide/svelte';
+  import { fade, fly, crossfade } from 'svelte/transition';
+  import { Radio, Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink } from '@lucide/svelte';
   import CircularVisualizer from '$lib/components/CircularVisualizer.svelte';
+  import * as HoverCard from '$lib/components/ui/hover-card';
   import { connect, resume, cleanup } from '$lib/audio.svelte';
 
   interface NowPlaying {
@@ -15,6 +16,16 @@
     listeners: number;
   }
 
+  interface ArtistInfo {
+    found: boolean;
+    name: string;
+    bio: string;
+    tags: string[];
+    listeners: number;
+    playcount: number;
+    url: string;
+  }
+
   let nowPlaying: NowPlaying | null = $state(null);
   let isPlaying = $state(false);
   let isMuted = $state(false);
@@ -22,6 +33,20 @@
   let audioEl: HTMLAudioElement | undefined = $state();
   let artError = $state(false);
   let trackKey = $state(0);
+
+  let artistInfo: ArtistInfo | null = $state(null);
+  let artistLoading = $state(false);
+
+  const [sendArt, receiveArt] = crossfade({
+    duration: 500,
+    fallback: (node) => fade(node, { duration: 400 })
+  });
+
+  function formatNumber(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
+  }
 
   async function fetchNowPlaying() {
     try {
@@ -31,11 +56,24 @@
       if (changed) {
         artError = false;
         trackKey++;
+        artistInfo = null;
       }
       nowPlaying = data;
     } catch {
       nowPlaying = null;
     }
+  }
+
+  async function loadArtistInfo() {
+    if (artistInfo || artistLoading || !nowPlaying?.artist) return;
+    artistLoading = true;
+    try {
+      const res = await fetch(`/api/artist-info?artist=${encodeURIComponent(nowPlaying.artist)}`);
+      artistInfo = await res.json();
+    } catch {
+      artistInfo = null;
+    }
+    artistLoading = false;
   }
 
   function togglePlay() {
@@ -91,8 +129,8 @@
         {#key trackKey}
           {#if nowPlaying?.albumArt && !artError}
             <img
-              in:fade={{ duration: 600 }}
-              out:fade={{ duration: 300 }}
+              in:receiveArt={{ key: 'art' }}
+              out:sendArt={{ key: 'art' }}
               src={nowPlaying.albumArt}
               alt="Album art"
               class="absolute inset-0 h-full w-full object-cover"
@@ -100,8 +138,8 @@
             />
           {:else}
             <div
-              in:fade={{ duration: 600 }}
-              out:fade={{ duration: 300 }}
+              in:receiveArt={{ key: 'art' }}
+              out:sendArt={{ key: 'art' }}
               class="absolute inset-0 flex h-full w-full items-center justify-center bg-card"
             >
               <span class:animate-spin-slow={isPlaying}>
@@ -126,13 +164,62 @@
             >
               {nowPlaying.track || 'Unknown Track'}
             </h1>
-            <p
+
+            <!-- Artist with hover card -->
+            <div
               in:fly={{ y: 15, duration: 500, delay: 300 }}
               out:fade={{ duration: 200 }}
-              class="text-lg text-muted-foreground"
             >
-              {nowPlaying.artist || 'Unknown Artist'}
-            </p>
+              <HoverCard.Root openDelay={300}>
+                <HoverCard.Trigger
+                  class="text-lg text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50 cursor-pointer"
+                  onpointerenter={loadArtistInfo}
+                >
+                  {nowPlaying.artist || 'Unknown Artist'}
+                </HoverCard.Trigger>
+                <HoverCard.Content side="bottom" class="w-80">
+                  {#if artistLoading}
+                    <p class="text-muted-foreground text-sm">Loading...</p>
+                  {:else if artistInfo?.found}
+                    <div class="flex flex-col gap-2">
+                      {#if artistInfo.bio}
+                        <p class="text-muted-foreground text-xs leading-relaxed line-clamp-3">{artistInfo.bio}</p>
+                      {/if}
+                      {#if artistInfo.tags.length}
+                        <div class="flex flex-wrap gap-1">
+                          {#each artistInfo.tags as tag}
+                            <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                              <Tag class="h-2.5 w-2.5" />{tag}
+                            </span>
+                          {/each}
+                        </div>
+                      {/if}
+                      <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span class="flex items-center gap-1">
+                          <Users class="h-3 w-3" />{formatNumber(artistInfo.listeners)} listeners
+                        </span>
+                        <span class="flex items-center gap-1">
+                          <Headphones class="h-3 w-3" />{formatNumber(artistInfo.playcount)} plays
+                        </span>
+                        {#if artistInfo.url}
+                          <a
+                            href={artistInfo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="ml-auto text-muted-foreground transition-colors hover:text-primary"
+                          >
+                            <ExternalLink class="h-3.5 w-3.5" />
+                          </a>
+                        {/if}
+                      </div>
+                    </div>
+                  {:else}
+                    <p class="text-muted-foreground text-sm">No info available</p>
+                  {/if}
+                </HoverCard.Content>
+              </HoverCard.Root>
+            </div>
+
             {#if nowPlaying.album}
               <p
                 in:fly={{ y: 10, duration: 500, delay: 400 }}

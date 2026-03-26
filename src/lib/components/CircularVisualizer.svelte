@@ -80,21 +80,19 @@
 
     const bands = getBands(freqData, ringCount, bufferLength);
 
-    // Overall energy for glow
-    let totalSum = 0;
-    for (let i = 0; i < bufferLength; i++) totalSum += freqData[i];
-    const energy = totalSum / bufferLength / 255;
+    // Bass energy (first 2 bands = sub-bass + bass)
+    const bass = (bands[0] + bands[1]) / 2;
 
     ctx.clearRect(0, 0, width, height);
 
-    // Core glow behind album art — extends well past edges
-    const coreSize = baseSize * (1.4 + energy * 0.3);
+    // Core glow — driven by bass
+    const coreSize = baseSize * (1.4 + bass * 0.5);
     const coreGradient = ctx.createRadialGradient(
       centerX, centerY, baseSize * 0.5,
       centerX, centerY, coreSize
     );
-    coreGradient.addColorStop(0, `oklch(0.82 0.07 25 / ${0.25 + energy * 0.25})`);
-    coreGradient.addColorStop(0.5, `oklch(0.76 0.10 305 / ${0.15 + energy * 0.15})`);
+    coreGradient.addColorStop(0, `oklch(0.82 0.07 25 / ${0.2 + bass * 0.4})`);
+    coreGradient.addColorStop(0.5, `oklch(0.76 0.10 305 / ${0.1 + bass * 0.25})`);
     coreGradient.addColorStop(1, 'oklch(0.76 0.10 305 / 0)');
     ctx.fillStyle = coreGradient;
     ctx.beginPath();
