@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, fly, crossfade } from 'svelte/transition';
-  import { Radio, Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink } from '@lucide/svelte';
+  import { Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink } from '@lucide/svelte';
   import CircularVisualizer from '$lib/components/CircularVisualizer.svelte';
   import * as HoverCard from '$lib/components/ui/hover-card';
   import { connect, resume, cleanup } from '$lib/audio.svelte';
@@ -48,22 +48,6 @@
     return String(n);
   }
 
-  async function fetchNowPlaying() {
-    try {
-      const res = await fetch('/api/now-playing');
-      const data: NowPlaying = await res.json();
-      const changed = data.artist !== nowPlaying?.artist || data.track !== nowPlaying?.track;
-      if (changed) {
-        artError = false;
-        trackKey++;
-        artistInfo = null;
-      }
-      nowPlaying = data;
-    } catch {
-      nowPlaying = null;
-    }
-  }
-
   async function loadArtistInfo() {
     if (artistInfo || artistLoading || !nowPlaying?.artist) return;
     artistLoading = true;
@@ -108,10 +92,23 @@
   }
 
   onMount(() => {
-    fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 10000);
+    const es = new EventSource('/api/now-playing/stream');
+
+    es.onmessage = (event) => {
+      try {
+        const data: NowPlaying = JSON.parse(event.data);
+        const changed = data.artist !== nowPlaying?.artist || data.track !== nowPlaying?.track;
+        if (changed) {
+          artError = false;
+          trackKey++;
+          artistInfo = null;
+        }
+        nowPlaying = data;
+      } catch { /* ignore parse errors */ }
+    };
+
     return () => {
-      clearInterval(interval);
+      es.close();
       cleanup();
     };
   });
@@ -278,12 +275,9 @@
           <span class="flex items-center gap-1.5">
             <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
             Live
-          </span>
-        {/if}
-        {#if nowPlaying?.listeners}
-          <span class="flex items-center gap-1.5">
-            <Radio class="h-3 w-3" />
-            {nowPlaying.listeners} listening
+            {#if nowPlaying?.listeners}
+              <span class="text-muted-foreground/60">({nowPlaying.listeners} listening)</span>
+            {/if}
           </span>
         {/if}
       </div>
