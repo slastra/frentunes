@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink } from '@lucide/svelte';
+  import { Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink, Clock, Music } from '@lucide/svelte';
   import CircularVisualizer from '$lib/components/CircularVisualizer.svelte';
   import * as HoverCard from '$lib/components/ui/hover-card';
   import { connect, resume, cleanup } from '$lib/audio.svelte';
@@ -36,8 +36,29 @@
   let prevArt: string | null = $state(null);
   let showPrevArt = $state(false);
 
+  interface AlbumTrack {
+    rank: number;
+    name: string;
+    duration: number;
+  }
+
+  interface AlbumInfo {
+    found: boolean;
+    name: string;
+    artist: string;
+    summary: string;
+    published: string;
+    tags: string[];
+    tracks: AlbumTrack[];
+    listeners: number;
+    playcount: number;
+    url: string;
+  }
+
   let artistInfo: ArtistInfo | null = $state(null);
   let artistLoading = $state(false);
+  let albumInfo: AlbumInfo | null = $state(null);
+  let albumLoading = $state(false);
 
   type StreamHealth = 'good' | 'buffering' | 'error' | 'idle';
   let streamHealth: StreamHealth = $state('idle');
@@ -90,6 +111,25 @@
       artistInfo = null;
     }
     artistLoading = false;
+  }
+
+  async function loadAlbumInfo() {
+    if (albumInfo || albumLoading || !nowPlaying?.artist || !nowPlaying?.album) return;
+    albumLoading = true;
+    try {
+      const params = new URLSearchParams({ artist: nowPlaying.artist, album: nowPlaying.album });
+      const res = await fetch(`/api/album-info?${params}`);
+      albumInfo = await res.json();
+    } catch {
+      albumInfo = null;
+    }
+    albumLoading = false;
+  }
+
+  function formatDuration(s: number): string {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   let retryTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -182,6 +222,7 @@
           artError = false;
           trackKey++;
           artistInfo = null;
+          albumInfo = null;
         }
         nowPlaying = data;
       } catch { /* ignore parse errors */ }
@@ -316,13 +357,74 @@
             </div>
 
             {#if nowPlaying.album}
-              <p
+              <div
                 in:fly={{ y: 10, duration: 500, delay: 400 }}
                 out:fade={{ duration: 200 }}
-                class="text-sm text-muted-foreground/70"
               >
-                {nowPlaying.album}
-              </p>
+                <HoverCard.Root openDelay={300}>
+                  <HoverCard.Trigger
+                    class="text-sm text-muted-foreground/70 underline decoration-muted-foreground/20 underline-offset-2 transition-colors hover:text-muted-foreground hover:decoration-muted-foreground/40 cursor-pointer"
+                    onpointerenter={loadAlbumInfo}
+                  >
+                    {nowPlaying.album}
+                  </HoverCard.Trigger>
+                  <HoverCard.Content side="bottom" class="w-80">
+                    {#if albumLoading}
+                      <p class="text-muted-foreground text-sm">Loading...</p>
+                    {:else if albumInfo?.found}
+                      <div class="flex flex-col gap-2">
+                        {#if albumInfo.published}
+                          <p class="text-xs text-muted-foreground/60">
+                            {albumInfo.published}
+                          </p>
+                        {/if}
+                        {#if albumInfo.tracks.length}
+                          <ol class="flex flex-col gap-0.5 max-h-48 overflow-y-auto text-xs">
+                            {#each albumInfo.tracks as track}
+                              <li class="flex items-center gap-2 py-0.5 {track.name === nowPlaying?.track ? 'text-primary font-medium' : 'text-muted-foreground'}">
+                                <span class="w-4 text-right text-muted-foreground/50 shrink-0">{track.rank}</span>
+                                <span class="truncate">{track.name}</span>
+                                {#if track.duration}
+                                  <span class="ml-auto text-muted-foreground/40 shrink-0">{formatDuration(track.duration)}</span>
+                                {/if}
+                              </li>
+                            {/each}
+                          </ol>
+                        {/if}
+                        {#if albumInfo.tags.length}
+                          <div class="flex flex-wrap gap-1">
+                            {#each albumInfo.tags as tag}
+                              <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                                <Tag class="h-2.5 w-2.5" />{tag}
+                              </span>
+                            {/each}
+                          </div>
+                        {/if}
+                        <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span class="flex items-center gap-1">
+                            <Users class="h-3 w-3" />{formatNumber(albumInfo.listeners)} listeners
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <Music class="h-3 w-3" />{albumInfo.tracks.length} tracks
+                          </span>
+                          {#if albumInfo.url}
+                            <a
+                              href={albumInfo.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="ml-auto text-muted-foreground transition-colors hover:text-primary"
+                            >
+                              <ExternalLink class="h-3.5 w-3.5" />
+                            </a>
+                          {/if}
+                        </div>
+                      </div>
+                    {:else}
+                      <p class="text-muted-foreground text-sm">No info available</p>
+                    {/if}
+                  </HoverCard.Content>
+                </HoverCard.Root>
+              </div>
             {/if}
           {/key}
         {:else}
