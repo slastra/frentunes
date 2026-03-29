@@ -83,7 +83,7 @@ export async function GET() {
       track,
       album,
       albumArt,
-      listenUrl: mount.listenurl || `${ICECAST_URL}${mount.server_url || '/stream'}`,
+      listenUrl: mount.listenurl || `${ICECAST_URL}${mount.server_url || '/angelo'}`,
       listeners: mount.listeners || 0
     });
   } catch {

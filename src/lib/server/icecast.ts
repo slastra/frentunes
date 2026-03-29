@@ -25,6 +25,7 @@ let current: NowPlaying = {
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let isPolling = false;
 
+const MAX_CACHE = 500;
 const lastfmCache = new Map<string, { album: string; albumArt: string | null }>();
 
 async function fetchLastfm(
@@ -43,7 +44,9 @@ async function fetchLastfm(
 			track,
 			format: 'json'
 		});
-		const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`);
+		const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`, {
+			signal: AbortSignal.timeout(5000)
+		});
 		const data = await res.json();
 		const info = data?.track;
 		const album = info?.album?.title || '';
@@ -57,6 +60,9 @@ async function fetchLastfm(
 			albumArt = img?.['#text'] || null;
 		}
 		const result = { album, albumArt };
+		if (lastfmCache.size >= MAX_CACHE) {
+			lastfmCache.delete(lastfmCache.keys().next().value!);
+		}
 		lastfmCache.set(key, result);
 		return result;
 	} catch {

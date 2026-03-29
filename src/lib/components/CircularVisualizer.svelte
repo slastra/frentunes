@@ -11,6 +11,9 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let ctx: CanvasRenderingContext2D | null = null;
   let animationId: number = 0;
+  let freqDataBuffer: Uint8Array | null = null;
+  let canvasW = 0;
+  let canvasH = 0;
 
   function superellipse(t: number, size: number, n: number): [number, number] {
     const cos = Math.cos(t);
@@ -60,9 +63,15 @@
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvasW !== targetW || canvasH !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+      canvasW = targetW;
+      canvasH = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const width = rect.width;
     const height = rect.height;
@@ -75,10 +84,12 @@
     const ringSpacing = baseSize * 0.035;
 
     const bufferLength = analyser.frequencyBinCount;
-    const freqData = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(freqData);
+    if (!freqDataBuffer || freqDataBuffer.length !== bufferLength) {
+      freqDataBuffer = new Uint8Array(bufferLength);
+    }
+    analyser.getByteFrequencyData(freqDataBuffer);
 
-    const bands = getBands(freqData, ringCount, bufferLength);
+    const bands = getBands(freqDataBuffer, ringCount, bufferLength);
 
     // Bass energy (first 2 bands = sub-bass + bass)
     const bass = (bands[0] + bands[1]) / 2;
@@ -86,7 +97,7 @@
     ctx.clearRect(0, 0, width, height);
 
     // Core glow — driven by bass
-    const coreSize = baseSize * (1.4 + bass * 0.5);
+    const coreSize = baseSize * (1.3 + bass * 0.425);
     const coreGradient = ctx.createRadialGradient(
       centerX, centerY, baseSize * 0.5,
       centerX, centerY, coreSize

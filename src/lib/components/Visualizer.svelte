@@ -11,6 +11,9 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let ctx: CanvasRenderingContext2D | null = null;
   let animationId: number = 0;
+  let freqDataBuffer: Uint8Array | null = null;
+  let canvasW = 0;
+  let canvasH = 0;
 
   function draw() {
     const analyser = getAnalyser();
@@ -21,16 +24,24 @@
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvasW !== targetW || canvasH !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+      canvasW = targetW;
+      canvasH = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const width = rect.width;
     const height = rect.height;
 
     const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(dataArray);
+    if (!freqDataBuffer || freqDataBuffer.length !== bufferLength) {
+      freqDataBuffer = new Uint8Array(bufferLength);
+    }
+    analyser.getByteFrequencyData(freqDataBuffer);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -44,7 +55,7 @@
 
     for (let i = 0; i < barCount; i++) {
       const binIndex = Math.floor((i / barCount) * bufferLength * 0.8);
-      const value = dataArray[binIndex] || 0;
+      const value = freqDataBuffer[binIndex] || 0;
       const normalizedHeight = (value / 255) * height * 0.9;
       const barHeight = Math.max(2, normalizedHeight);
 

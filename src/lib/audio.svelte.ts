@@ -36,11 +36,11 @@ export function resume() {
 }
 
 export function cleanup() {
-  if (audioCtx) {
-    audioCtx.close();
-    audioCtx = null;
-    analyser = null;
-    source = null;
-    connected = false;
-  }
+  if (source) source.disconnect();
+  if (analyser) analyser.disconnect();
+  if (audioCtx) audioCtx.close();
+  audioCtx = null;
+  analyser = null;
+  source = null;
+  connected = false;
 }
