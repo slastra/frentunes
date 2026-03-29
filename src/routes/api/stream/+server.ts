@@ -1,7 +1,21 @@
 import { ICECAST_URL } from '$env/static/private';
 
+async function getFirstMount(): Promise<string> {
+  try {
+    const res = await fetch(`${ICECAST_URL}/status-json.xsl`);
+    const data = await res.json();
+    const source = data?.icestats?.source;
+    if (!source) return '/angelo';
+    const mount = Array.isArray(source) ? source[0] : source;
+    return mount.server_url || mount.listenurl || '/angelo';
+  } catch {
+    return '/angelo';
+  }
+}
+
 export async function GET() {
-  const streamUrl = `${ICECAST_URL}/stream`;
+  const mountPath = await getFirstMount();
+  const streamUrl = `${ICECAST_URL}${mountPath}`;
   const upstream = await fetch(streamUrl);
 
   if (!upstream.ok || !upstream.body) {
