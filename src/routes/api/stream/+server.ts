@@ -7,7 +7,10 @@ async function getFirstMount(): Promise<string> {
     const source = data?.icestats?.source;
     if (!source) return '/angelo';
     const mount = Array.isArray(source) ? source[0] : source;
-    return mount.server_url || mount.listenurl || '/angelo';
+    // server_url is a path like "/angelo", listenurl is a full URL
+    if (mount.server_url) return mount.server_url;
+    if (mount.listenurl) return new URL(mount.listenurl).pathname;
+    return '/angelo';
   } catch {
     return '/angelo';
   }
