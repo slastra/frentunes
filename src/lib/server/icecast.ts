@@ -142,7 +142,7 @@ async function poll() {
 			track,
 			album,
 			albumArt,
-			listenUrl: mount.listenurl || `${ICECAST_URL}${mount.server_url || '/angelo'}`,
+			listenUrl: '/api/stream',
 			listeners: mount.listeners || 0
 		};
 

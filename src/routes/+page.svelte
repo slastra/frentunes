@@ -391,15 +391,6 @@
                             {/each}
                           </ol>
                         {/if}
-                        {#if albumInfo.tags.length}
-                          <div class="flex flex-wrap gap-1">
-                            {#each albumInfo.tags as tag}
-                              <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
-                                <Tag class="h-2.5 w-2.5" />{tag}
-                              </span>
-                            {/each}
-                          </div>
-                        {/if}
                         <div class="flex items-center gap-3 text-xs text-muted-foreground">
                           <span class="flex items-center gap-1">
                             <Users class="h-3 w-3" />{formatNumber(albumInfo.listeners)} listeners
