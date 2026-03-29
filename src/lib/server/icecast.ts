@@ -142,7 +142,7 @@ async function poll() {
 			track,
 			album,
 			albumArt,
-			listenUrl: '/api/stream',
+			listenUrl: `https://radio.lastra.us${new URL(mount.listenurl).pathname}`,
 			listeners: mount.listeners || 0
 		};
 
