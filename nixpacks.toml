@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_22", "bun"]
+# nixpacks' default nixpkgs snapshot ships Node 22.19, which bundles a Brotli
+# decoder vulnerable to CVE-2026-111497. Pin the nixos-26.05 channel (cached
+# on cache.nixos.org, so Node isn't built from source): Node 22.23.4.
+nixpkgsArchive = "da6dc0e7b26060f2f71ce3ef7088fb56ee44fa36"
+
+[phases.install]
+cmds = ["bun install --frozen-lockfile"]
+
+# Explicit, so the start command never depends on detection: nixpacks serves
+# any app with svelte but not @sveltejs/kit in dependencies as a static site.
+[start]
+cmd = "node build/index.js"
