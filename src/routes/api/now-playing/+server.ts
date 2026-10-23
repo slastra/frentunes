@@ -1,5 +1,4 @@
-import { json } from '@sveltejs/kit';
-import { ICECAST_URL, LASTFM_API_KEY } from '$env/static/private';
+import { ICECAST_URL, LASTFM_API_KEY } from '$app/env/private';
 
 interface LastfmImage {
   '#text': string;
@@ -38,7 +37,7 @@ export async function GET() {
 
     const source = data?.icestats?.source;
     if (!source) {
-      return json({ playing: false });
+      return Response.json({ playing: false });
     }
 
     // Icecast may return a single source or an array
@@ -77,7 +76,7 @@ export async function GET() {
       }
     }
 
-    return json({
+    return Response.json({
       playing: true,
       artist,
       track,
@@ -87,6 +86,6 @@ export async function GET() {
       listeners: mount.listeners || 0
     });
   } catch {
-    return json({ playing: false });
+    return Response.json({ playing: false });
   }
 }

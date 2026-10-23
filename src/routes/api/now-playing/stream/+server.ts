@@ -1,4 +1,4 @@
-import { subscribe, getCurrent } from '$lib/server/icecast';
+import { subscribe, getCurrent } from '#lib/server/icecast.js';
 
 export function GET() {
 	const encoder = new TextEncoder();

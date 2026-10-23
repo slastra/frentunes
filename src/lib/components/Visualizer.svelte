@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getAnalyser } from '$lib/audio.svelte';
+  import { getAnalyser } from '#lib/audio.svelte.js';
 
   let {
     isPlaying

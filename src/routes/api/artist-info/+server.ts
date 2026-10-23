@@ -1,10 +1,9 @@
-import { json } from '@sveltejs/kit';
-import { LASTFM_API_KEY } from '$env/static/private';
+import { LASTFM_API_KEY } from '$app/env/private';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
   const artist = url.searchParams.get('artist');
-  if (!artist) return json({ error: 'Missing artist' }, { status: 400 });
+  if (!artist) return Response.json({ error: 'Missing artist' }, { status: 400 });
 
   try {
     const params = new URLSearchParams({
@@ -16,9 +15,9 @@ export const GET: RequestHandler = async ({ url }) => {
     const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`);
     const data = await res.json();
     const info = data?.artist;
-    if (!info) return json({ found: false });
+    if (!info) return Response.json({ found: false });
 
-    return json({
+    return Response.json({
       found: true,
       name: info.name || artist,
       bio: info.bio?.summary?.replace(/<[^>]*>/g, '').trim().split('\n')[0] || '',
@@ -28,6 +27,6 @@ export const GET: RequestHandler = async ({ url }) => {
       url: info.url || ''
     });
   } catch {
-    return json({ found: false });
+    return Response.json({ found: false });
   }
 };

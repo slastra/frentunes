@@ -1,4 +1,4 @@
-import { ICECAST_URL, LASTFM_API_KEY } from '$env/static/private';
+import { ICECAST_URL, LASTFM_API_KEY } from '$app/env/private';
 
 interface NowPlaying {
 	playing: boolean;

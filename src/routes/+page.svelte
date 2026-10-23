@@ -2,9 +2,9 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { Play, Pause, Volume2, VolumeX, Disc3, Users, Headphones, Tag, ExternalLink, Music } from '@lucide/svelte';
-  import CircularVisualizer from '$lib/components/CircularVisualizer.svelte';
-  import * as HoverCard from '$lib/components/ui/hover-card';
-  import { connect, resume, cleanup } from '$lib/audio.svelte';
+  import CircularVisualizer from '#lib/components/CircularVisualizer.svelte';
+  import * as HoverCard from '#lib/components/ui/hover-card/index.js';
+  import { connect, resume, cleanup } from '#lib/audio.svelte.js';
 
   interface NowPlaying {
     playing: boolean;
