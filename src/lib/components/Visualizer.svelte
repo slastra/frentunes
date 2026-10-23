@@ -11,7 +11,7 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let ctx: CanvasRenderingContext2D | null = null;
   let animationId: number = 0;
-  let freqDataBuffer: Uint8Array | null = null;
+  let freqDataBuffer: Uint8Array<ArrayBuffer> | null = null;
   let canvasW = 0;
   let canvasH = 0;
 

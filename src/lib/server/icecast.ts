@@ -61,7 +61,8 @@ async function fetchLastfm(
 		}
 		const result = { album, albumArt };
 		if (lastfmCache.size >= MAX_CACHE) {
-			lastfmCache.delete(lastfmCache.keys().next().value!);
+			const oldest = lastfmCache.keys().next().value;
+			if (oldest !== undefined) lastfmCache.delete(oldest);
 		}
 		lastfmCache.set(key, result);
 		return result;
